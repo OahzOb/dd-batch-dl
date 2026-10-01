@@ -1,0 +1,219 @@
+/* Two hosts are possible for this sheet:
+   * :root  — the document, when this runs as Chrome's side panel;
+   * :host  — the shadow host, when the panel is injected into the page.
+   :root matches nothing inside a shadow root, so without the :host selector
+   every var() below resolves to nothing and the panel renders transparent. */
+:root,
+:host {
+  --bg: #ffffff;
+  --fg: #1f2329;
+  --muted: #8a9099;
+  --line: #e6e8eb;
+  --accent: #1677ff;
+  --accent-weak: #eaf2ff;
+  --danger: #d54941;
+  --warn: #b7791f;
+  --radius: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root,
+  :host {
+    --bg: #1c1f23;
+    --fg: #e8eaed;
+    --muted: #9aa0a6;
+    --line: #33383d;
+    --accent: #4c9aff;
+    --accent-weak: #1e2c40;
+    --danger: #ff6b5e;
+    --warn: #e2b04a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand { display: flex; align-items: center; gap: 7px; font-size: 13px; }
+
+.dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--muted);
+  flex: 0 0 auto;
+}
+.dot.ok { background: #2ea44f; }
+.dot.bad { background: var(--danger); }
+
+button {
+  font: inherit;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--fg);
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+button.primary:hover:not(:disabled) { filter: brightness(1.08); color: #fff; }
+
+button.ghost { background: transparent; }
+button.danger { color: var(--danger); border-color: var(--danger); }
+button.small { padding: 2px 7px; font-size: 12px; }
+button.big { flex: 1; padding: 8px 10px; font-weight: 600; }
+
+input[type="text"], input[type="search"] {
+  font: inherit;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg);
+}
+input[type="text"]:focus, input[type="search"]:focus {
+  outline: none; border-color: var(--accent);
+}
+
+.source, .toolbar { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.source .row, .toolbar .row { display: flex; gap: 6px; margin-top: 6px; }
+.source .row:first-child { margin-top: 0; }
+
+.hint { color: var(--muted); font-size: 12px; margin-top: 6px; word-break: break-all; }
+.hint.ok { color: #2ea44f; }
+.hint.bad { color: var(--danger); }
+
+.stats {
+  display: flex; flex-wrap: wrap; gap: 4px 14px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.stats b { color: var(--fg); }
+
+.check {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 6px; color: var(--muted); font-size: 12px; cursor: pointer;
+}
+
+.dirrow { align-items: center; }
+.dirlabel { color: var(--muted); font-size: 12px; flex: 0 0 auto; }
+.dirrow input { flex: 1; min-width: 0; }
+
+.tree {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 4px 12px;
+  min-height: 80px;
+  position: relative;
+}
+
+.tree.busy { opacity: .55; pointer-events: none; }
+
+.empty { color: var(--muted); padding: 24px 16px; text-align: center; line-height: 1.7; }
+
+.children-empty {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 2px 0 2px 38px;
+}
+
+/* Collapse and filter must not fight each other over the hidden attribute, so
+   neither uses it: collapse hides .children, the filter marks .node elements.
+   display is only ever set to block via a selector conditional on NOT being
+   hidden/filtered — if it were unconditional it would beat the UA sheet's
+   [hidden] rule and hiding would silently do nothing (which is exactly the bug
+   that made collapsing and filtering both appear broken). */
+.children { display: block; }
+.children[hidden] { display: none; }
+.node.filtered { display: none; }
+
+.node-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.node-row:hover { background: var(--accent-weak); }
+
+.twisty {
+  width: 16px; flex: 0 0 16px;
+  text-align: center; cursor: pointer;
+  color: var(--muted);
+  user-select: none;
+  font-size: 10px;
+}
+.twisty.leaf { cursor: default; opacity: .35; }
+
+.node-name {
+  flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  cursor: default;
+}
+.node-name.folder { font-weight: 600; }
+.node-name.online { color: var(--warn); }
+
+.meta { color: var(--muted); font-size: 11px; flex: 0 0 auto; }
+.meta.unknown { opacity: .55; font-style: italic; }
+
+.badge {
+  font-size: 10px; padding: 0 4px; border-radius: 3px;
+  border: 1px solid var(--line); color: var(--muted);
+}
+.badge.online { color: var(--warn); border-color: var(--warn); }
+
+.footer {
+  display: flex; gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+
+.progress { padding: 8px 12px; border-top: 1px solid var(--line); }
+.bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+#barFill { height: 100%; width: 0; background: var(--accent); transition: width .15s ease; }
+
+.report {
+  border-top: 1px solid var(--line);
+  max-height: 42%;
+  overflow: auto;
+  padding: 8px 12px;
+}
+.report-head { display: flex; align-items: center; justify-content: space-between; }
+.report ul { margin: 6px 0 0; padding-left: 16px; color: var(--muted); font-size: 12px; }
+.report li { margin-bottom: 4px; word-break: break-all; }
+.report a { color: var(--accent); }
+
+.diag {
+  margin: 6px 0 0;
+  font: 11px/1.6 ui-monospace, Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: var(--muted);
+}

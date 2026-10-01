@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "钉钉文档文件夹打包下载",
+  "version": "0.1.0",
+  "description": "在钉钉文档页面列出整个文件夹目录树，勾选后批量下载，保留子文件夹结构或打包为 zip。",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "cookies",
+    "downloads",
+    "storage",
+    "sidePanel",
+    "tabs",
+    "scripting",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://alidocs.dingtalk.com/*",
+    "https://*.dingtalk.com/*",
+    "https://*.aliyuncs.com/*",
+    "https://*.aliyun.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "action": {
+    "default_title": "钉钉文档文件夹打包下载"
+  },
+  "side_panel": {
+    "default_path": "src/sidepanel.html"
+  }
+}

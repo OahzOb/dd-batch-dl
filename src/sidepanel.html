@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>钉钉文档批量下载</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="dot" id="sessionDot"></span>
+      <strong>钉钉文档批量下载</strong>
+    </div>
+    <button id="btnPing" class="ghost" title="检查登录态">检查</button>
+    <button id="btnDiag" class="ghost" title="诊断 cookie 与接口连通性">诊断</button>
+  </header>
+
+  <section class="source">
+    <div class="row">
+      <input id="rootUrl" type="text" placeholder="当前页面地址会自动填入；也可手动粘贴链接" spellcheck="false" />
+    </div>
+    <div class="row">
+      <button id="btnUseTab" class="ghost" title="把当前页面的地址填入上面的输入框（通常不需要，已自动填入）">重新读取当前页面</button>
+      <button id="btnScan" class="primary">扫描目录树</button>
+      <button id="btnCancel" class="ghost danger" hidden>停止</button>
+    </div>
+    <div id="sessionInfo" class="hint"></div>
+  </section>
+
+  <section id="statsBar" class="stats" hidden>
+    <span id="statFolders">0 文件夹</span>
+    <span id="statFiles">0 文件</span>
+    <span id="statSize">0 B</span>
+    <span id="statSel">已选 0</span>
+  </section>
+
+  <section class="toolbar" id="toolbar" hidden>
+    <input id="filter" type="search" placeholder="过滤名称…" spellcheck="false" />
+    <div class="row">
+      <button id="btnAll" class="ghost">全选</button>
+      <button id="btnNone" class="ghost">全不选</button>
+      <button id="btnInvert" class="ghost">反选</button>
+      <button id="btnExpandAll" class="ghost" title="递归读取所有子文件夹，从而算出每个文件夹的精确大小。会发起大量请求，比单独的目录浏览慢，但之后统计数字和 zip 体积预估才是完整的。">展开全部（算出大小）</button>
+    </div>
+    <label class="check"><input type="checkbox" id="optFlatten" /> 扁平化（不保留子文件夹结构）</label>
+    <label class="check"><input type="checkbox" id="optZip" /> 打包成一个 zip 文件（而不是逐个下载）</label>
+    <div class="row dirrow">
+      <span class="dirlabel" title="相对于浏览器默认下载目录的子文件夹。留空则直接下到默认目录。">下载到</span>
+      <input type="text" id="downloadDir" placeholder="（默认下载目录）" spellcheck="false" />
+      <button id="btnPickDir" class="ghost" title="修改浏览器的下载位置">位置…</button>
+    </div>
+    <div id="zipWarn" class="hint bad" hidden></div>
+  </section>
+
+  <main id="tree" class="tree">
+    <div class="empty">还没有扫描结果。<br />打开你的钉钉文档文件夹页面，然后点上面的「用当前标签页」→「扫描目录树」。</div>
+  </main>
+
+  <section id="diagBox" class="report" hidden>
+    <div class="report-head">
+      <strong>诊断结果</strong>
+      <button id="btnCloseDiag" class="ghost small">关闭</button>
+    </div>
+    <pre id="diagText" class="diag"></pre>
+  </section>
+
+  <section class="footer">
+    <button id="btnDownload" class="primary big" disabled>下载选中的文件</button>
+    <button id="btnOpenDl" class="ghost">打开下载列表</button>
+  </section>
+
+  <section id="progress" class="progress" hidden>
+    <div class="bar"><div id="barFill"></div></div>
+    <div id="progressText" class="hint"></div>
+  </section>
+
+  <section id="report" class="report" hidden>
+    <div class="report-head">
+      <strong>需要手动处理的项</strong>
+      <button id="btnCloseReport" class="ghost small">关闭</button>
+    </div>
+    <ul id="reportList"></ul>
+  </section>
+
+  <script src="shared.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
