@@ -277,4 +277,25 @@ src/offscreen.html
 src/sidepanel.html   侧边栏界面
 src/sidepanel.css    样式（含深色模式）
 src/sidepanel.js     界面逻辑：目录树渲染、勾选、进度、下载目录
+tools/package.ps1    打包成可分发的 zip
+tools/*.mjs          开发用的逆向探测与回归脚本（不参与扩展运行，见 tools/README.md）
+dist/                打包产物（已 gitignore）
+tmp/                 测试临时目录（已 gitignore）
 ```
+
+## 开发
+
+改完代码后：
+
+```bash
+# 不需登录态就能跑的回归，优先跑这些
+node tools\dd-path-test.mjs     # 下载/打包路径形态
+node tools\dd-load-check.mjs    # 让 Chrome 真的加载扩展
+# 界面回归（需先起一个带调试端口的 Chrome，见 tools/README.md）
+node tools\dd-panel-test.mjs
+
+# 打包分发
+pwsh -NoProfile -File tools\package.ps1
+```
+
+`tools/README.md` 有完整的脚本清单，以及哪个需要钉钉登录态。

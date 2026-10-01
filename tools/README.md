@@ -1,7 +1,25 @@
-# 验证脚本说明
+# 验证脚本与构建工具
 
-这些脚本是开发 `dd-batch-dl` 扩展时用来**逆向钉钉接口契约、并验证扩展行为**的，
-不是扩展运行所需的东西。扩展本身零依赖，只用 `dd-batch-dl/` 目录。
+本目录里的东西**不参与扩展运行**，是开发期间用来逆向钉钉接口契约、验证扩展行为的。
+
+> 下文命令里的 `<repo>` 指本仓库根目录（当前为 `<repo>`）。
+> 脚本本身用相对自身的位置推导仓库根，所以整个项目换目录也不会坏。
+> 临时产物统一写到 `<repo>\tmp\`，已在 `.gitignore` 中忽略。
+
+| 文件 | 用途 | 需要登录态 |
+|---|---|---|
+| `dd-path-test.mjs` | 下载/打包路径形态（内存假目录树） | ❌ 不需要 |
+| `dd-panel-test.mjs` | 界面：收起、过滤、大小显示 | ❌ 不需要 |
+| `dd-load-check.mjs` | 让 Chrome 真正加载扩展并回报结果 | ❌ 不需要 |
+| `dd-sw-probe.mjs` | 真实 Service Worker 内探测与离屏下载验证 | ❌ 不需要 |
+| `dd-e2e.mjs` | 背景逻辑端到端（真实目录树、下载、zip） | ✅ 需要 |
+| `dd-cdp.mjs` | 极简 CDP 驱动（navigate / eval / info） | 视用途 |
+| `dd-auth-probe.mjs` | 抓页面真实请求头、清点 cookie | ✅ 需要 |
+| `dd-auth-required.mjs` | 逐个剔除 cookie 判断哪些是必需的 | ✅ 需要 |
+| `package.ps1` | 打包成可分发的 zip（见根 README） | ❌ 不需要 |
+
+> 调试浏览器的会话（`doc_atoken`）会过期，过期后需要登录态的那几个脚本就跑不了。
+> 前四个不受影响，**改完代码至少把它们跑一遍**。
 
 ## 为什么需要它们
 
@@ -24,9 +42,9 @@ e2e 脚本（Node VM）里这个 API 是存在的（垫片自己提供了），�
 ```bash
 # 起一个干净浏览器（下载会落到系统默认下载目录）
 & 'C:\Program Files\Google\Chrome\Application\chrome.exe' `
-  --remote-debugging-port=9444 --user-data-dir=C:\Workspace\dd-sw-browser `
+  --remote-debugging-port=9444 --user-data-dir=<repo>\tmp\sw-browser `
   --no-first-run about:blank
-node dd-sw-probe.mjs
+node tools\dd-sw-probe.mjs
 ```
 
 ## dd-e2e.mjs —— 主验证脚本（背景逻辑）
@@ -66,9 +84,9 @@ $env:DD_SW_401='1';  node dd-e2e.mjs   # 模拟"扩展自身请求被 401、页�
 ```bash
 # 先起一个带插件和调试端口的 Chrome（脚本自己会问出扩展 ID）
 & 'C:\Program Files\Google\Chrome\Application\chrome.exe' `
-  --remote-debugging-port=9444 --user-data-dir=C:\Workspace\dd-panel-browser `
-  --no-first-run --load-extension=C:\Workspace\dd-batch-dl `
-  --disable-extensions-except=C:\Workspace\dd-batch-dl about:blank
+  --remote-debugging-port=9444 --user-data-dir=<repo>\tmp\panel-browser `
+  --no-first-run --load-extension=<repo> `
+  --disable-extensions-except=<repo> about:blank
 node dd-panel-test.mjs
 ```
 
@@ -114,7 +132,7 @@ node dd-path-test.mjs   # 退出码非 0 表示路径形态不对
 ```bash
 # 先起一个带调试端口的 Chrome
 & 'C:\Program Files\Google\Chrome\Application\chrome.exe' `
-  --remote-debugging-port=9444 --user-data-dir=C:\Workspace\dd-panel-browser `
+  --remote-debugging-port=9444 --user-data-dir=<repo>\tmp\panel-browser `
   --no-first-run about:blank
 node dd-panel-test.mjs
 ```
@@ -146,12 +164,12 @@ httpOnly cookie 并忽略手工设置的 Cookie 头**，所以那种写法根本
 
 ## 调试浏览器
 
-`C:\Workspace\dd-test-browser` 是一个独立配置目录的 Chrome（**不碰你日常浏览器的任何数据**），
+`<repo>\tmp\test-browser` 是一个独立配置目录的 Chrome（**不碰你日常浏览器的任何数据**），
 已登录钉钉文档，端口 9333。改动代码后要重新验证时可直接复用，不用再登录：
 
 ```bash
 & 'C:\Program Files\Google\Chrome\Application\chrome.exe' `
-  --remote-debugging-port=9333 --user-data-dir=C:\Workspace\dd-test-browser `
+  --remote-debugging-port=9333 --user-data-dir=<repo>\tmp\test-browser `
   --no-first-run '<你的文件夹链接>'
 ```
 
