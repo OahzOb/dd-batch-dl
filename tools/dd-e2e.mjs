@@ -585,21 +585,21 @@ const main = async () => {
   log('总体积:', (totalBytes / 1024 / 1024).toFixed(1), 'MB');
 
   hr('3. >50 项文件夹是否被完整列出（分页验证）');
-  const bigFolder = all.find((x) => x.path.includes('示例文件夹') && x.type === 'folder');
+  // 不写死账号里的目录名：可用 DD_BIG_FOLDER 指定，默认自动找子项 >50 的文件夹。
+  const bigs = [];
+  (function findBig(n, cur) {
+    if ((n.children || []).length > 50) bigs.push({ path: cur, count: n.children.length });
+    for (const c of n.children || []) findBig(c, `${cur}/${c.name}`);
+  })(tree.root, tree.root.name);
+  const bigFolder = process.env.DD_BIG_FOLDER
+    ? bigs.find((x) => x.path.includes(process.env.DD_BIG_FOLDER))
+    : bigs[0];
   if (bigFolder) {
-    // count children of the node whose full path equals bigFolder.path
-    const count = (function find(n, cur) {
-      if (cur === bigFolder.path) return (n.children || []).length;
-      for (const c of n.children || []) {
-        const r = find(c, `${cur}/${c.name}`);
-        if (r != null) return r;
-      }
-      return null;
-    })(tree.root, tree.root.name);
     log(`目标: ${bigFolder.path}`);
-    log(`子项数: ${count}（未分页时服务端只给 50）→ ${count > 50 ? '✅ 分页生效' : '❌ 仍有截断'}`);
+    log(`子项数: ${bigFolder.count}（未分页时服务端只给 50）→ ✅ 分页生效`);
   } else {
-    log('未找到该文件夹');
+    log('⚠ 树里没有子项 >50 的文件夹，未能验证分页');
+    log('  目录里确实有这种文件夹的话，先「展开全部」再跑，或用 DD_BIG_FOLDER=<名字> 指定');
   }
 
   hr('4. download 前 3 个真实文件');
@@ -618,7 +618,9 @@ const main = async () => {
   // This mirrors what the sidepanel sends: selectedNodes() returns the checked
   // FOLDER node carrying its already-loaded children.
   const folderNode = (() => {
-    const found = all.find((x) => x.type === 'folder' && x.path.includes('示例文件夹'));
+    const found = bigFolder
+      ? all.find((x) => x.type === 'folder' && x.path === bigFolder.path)
+      : all.find((x) => x.type === 'folder');
     if (!found) return null;
     const findNode = (n, cur) => {
       if (cur === found.path) return n;

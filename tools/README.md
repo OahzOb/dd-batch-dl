@@ -2,9 +2,19 @@
 
 本目录里的东西**不参与扩展运行**，是开发期间用来逆向钉钉接口契约、验证扩展行为的。
 
-> 下文命令里的 `<repo>` 指本仓库根目录（当前为 `<repo>`）。
+> 下文命令里的 `<repo>` 指本仓库根目录。
 > 脚本本身用相对自身的位置推导仓库根，所以整个项目换目录也不会坏。
 > 临时产物统一写到 `<repo>\tmp\`，已在 `.gitignore` 中忽略。
+
+命令里的 `$chrome` 指本机 Chrome 可执行文件路径，先探测一次再用（路径不存在的行会跳过）：
+
+```powershell
+$chrome = @(
+  "$env:ProgramFiles\Google\Chrome\Application\chrome.exe"
+  "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
+  "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+```
 
 | 文件 | 用途 | 需要登录态 |
 |---|---|---|
@@ -41,7 +51,7 @@ e2e 脚本（Node VM）里这个 API 是存在的（垫片自己提供了），�
 
 ```bash
 # 起一个干净浏览器（下载会落到系统默认下载目录）
-& 'C:\Program Files\Google\Chrome\Application\chrome.exe' `
+& $chrome `
   --remote-debugging-port=9444 --user-data-dir=<repo>\tmp\sw-browser `
   --no-first-run about:blank
 node tools\dd-sw-probe.mjs
@@ -65,33 +75,11 @@ node tools\dd-sw-probe.mjs
 node dd-e2e.mjs                        # 完整跑（含真实扫描）
 $env:DD_SKIP_SCAN='1'; node dd-e2e.mjs # 复用磁盘缓存的目录树，只验证下载/打包
 $env:DD_SW_401='1';  node dd-e2e.mjs   # 模拟"扩展自身请求被 401、页面正常"
+$env:DD_BIG_FOLDER='某个子文件夹'; node dd-e2e.mjs  # 指定 >50 项的分页验证目标（默认自动探测）
 ```
 
 `DD_SW_401=1` 是最有价值的一个开关：它让所有带 cookie 的 Service Worker 请求必然 401，
 精确复现用户的故障环境，从而验证页面代发回退是否真的生效。
-
-## dd-panel-test.mjs —— 界面验证脚本
-
-用真实浏览器跑**真实的 `sidepanel.html` + `sidepanel.css` + `sidepanel.js`**，
-通过 `Page.setDocumentContent` 注入文档、再用 `Runtime.evaluate` 装入源码，
-并提供一个 mock `chrome.*`。然后真的去点小三角、真的去输入过滤词，报告 DOM 状态。
-
-这个脚本存在的理由：**折叠和过滤同时失效，根因是 CSS 里 `.node { display: block }`
-覆盖了浏览器默认的 `[hidden] { display: none }`**。纯逻辑测试永远发现不了这种事。
-更早一版试图在 `data:` URL 上复现时"通过"了，因为它没加载那段 CSS ——
-又一次"验证环境比真实环境宽松"。
-
-```bash
-# 先起一个带插件和调试端口的 Chrome（脚本自己会问出扩展 ID）
-& 'C:\Program Files\Google\Chrome\Application\chrome.exe' `
-  --remote-debugging-port=9444 --user-data-dir=<repo>\tmp\panel-browser `
-  --no-first-run --load-extension=<repo> `
-  --disable-extensions-except=<repo> about:blank
-node dd-panel-test.mjs
-```
-
-覆盖：展开 → 收起 → 再展开 → 过滤 → 清空过滤。判定标准是元素**实际是否被渲染**
-（`getBoundingClientRect().height > 0`），不是只看属性。
 
 ## dd-path-test.mjs —— 下载/打包路径形态（无需登录态）
 
@@ -101,7 +89,7 @@ node dd-panel-test.mjs
 不需要钉钉登录态，所以**当调试浏览器会话过期时，这是仍能跑的那部分验证**。
 
 它抓到的 bug：路径是从**扫描根目录**拼起的，导致入口目录变成每一份下载里多出来的一层
-（勾了子文件夹，压缩包里却是 `示例根/产品A/…`）。正确行为是**路径相对于你勾选的东西**，
+（勾了子文件夹，压缩包里却多出一层扫描根目录）。正确行为是**路径相对于你勾选的东西**，
 唯一例外是扫描根本身。
 
 覆盖四种勾选方式：只勾子文件夹、只勾根下的散文件、勾整个根目录、以及 zip 条目路径。
@@ -117,6 +105,9 @@ node dd-path-test.mjs   # 退出码非 0 表示路径形态不对
 并提供一个 mock `chrome.*`。然后真的去点小三角、真的去输入过滤词、真的点「展开全部」，
 报告 DOM 与**计算样式**。
 
+覆盖：展开 → 收起 → 再展开 → 过滤 → 清空过滤。判定标准是元素**实际是否被渲染**
+（`getBoundingClientRect().height > 0`），不是只看属性。
+
 这个脚本存在的理由，是几个**纯逻辑测试永远抓不到**的 bug：
 
 | bug | 为什么只能在这里发现 |
@@ -131,7 +122,7 @@ node dd-path-test.mjs   # 退出码非 0 表示路径形态不对
 
 ```bash
 # 先起一个带调试端口的 Chrome
-& 'C:\Program Files\Google\Chrome\Application\chrome.exe' `
+& $chrome `
   --remote-debugging-port=9444 --user-data-dir=<repo>\tmp\panel-browser `
   --no-first-run about:blank
 node dd-panel-test.mjs
@@ -168,7 +159,7 @@ httpOnly cookie 并忽略手工设置的 Cookie 头**，所以那种写法根本
 已登录钉钉文档，端口 9333。改动代码后要重新验证时可直接复用，不用再登录：
 
 ```bash
-& 'C:\Program Files\Google\Chrome\Application\chrome.exe' `
+& $chrome `
   --remote-debugging-port=9333 --user-data-dir=<repo>\tmp\test-browser `
   --no-first-run '<你的文件夹链接>'
 ```

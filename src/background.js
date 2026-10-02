@@ -802,7 +802,7 @@ async function collectFilesResolving(selection, tree, onProgress) {
   // Paths are relative to the SELECTION, with exactly one exception: the scanned
   // root itself. That node is only the entry point the user opened the panel
   // from, so letting it through would add a spurious top level to every download
-  // ("示例根/…"). Everything the user actually ticked keeps its own name, so
+  // ("根目录名/…"). Everything the user actually ticked keeps its own name, so
   // ticking "产品A" yields "产品A/手册/说明书.pdf".
   const walk = async (nodeList, prefix) => {
     for (const n of nodeList) {
